@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
+from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS, CountVectorizer
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn import metrics
 
@@ -26,19 +26,11 @@ y = df.values[:,1].astype('int')
 # use TfidfVectorizer to remove words that occur in more than 80% of features
 # use strip_accents to ignore non-english words https://stackoverflow.com/a/57286757
 curr_stop_words = ENGLISH_STOP_WORDS.union(["book"])
-# vectorizer = TfidfVectorizer(stop_words=curr_stop_words, lowercase=True, max_df=0.8, use_idf=True, strip_accents='ascii')
-vectorizer = TfidfVectorizer(stop_words=curr_stop_words, lowercase=True, max_df=0.7, use_idf=True, strip_accents='ascii')
-X = vectorizer.fit_transform(x)
 
-# print(vectorizer.get_feature_names()[36575])
-# print(vectorizer.get_feature_names()[10090])
-# print(vectorizer.get_feature_names()[29349])
-# print(vectorizer.get_feature_names()[27086])
-# print(vectorizer.get_feature_names()[49332])
-# print(vectorizer.get_feature_names()[36774])
-# print(vectorizer.get_feature_names()[51403])
-# print(vectorizer.get_feature_names()[48694])
-# print(vectorizer.get_feature_names()[38893])
+# vectorizer = TfidfVectorizer(stop_words=curr_stop_words, lowercase=True, max_df=0.7, use_idf=True, strip_accents='ascii')
+vectorizer = CountVectorizer(stop_words=curr_stop_words, lowercase=True, strip_accents='ascii')
+
+X = vectorizer.fit_transform(x)
 
 # split data such that we train our model on 70% of the data and test on 30%
 # X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=0)
