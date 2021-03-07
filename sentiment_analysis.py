@@ -44,7 +44,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random
 mnb_classifier = MultinomialNB()
 # mnb_classifier = BernoulliNB()
 
-mnb_classifier.fit(X_train, y_train.astype('int'))
+mnb_classifier.fit(X_train, y_train)
 y_pred_nb = mnb_classifier.predict(X_test)
 
 print('\n_________________________________Multionmial Naive Bayes_________________________________')
@@ -58,7 +58,7 @@ print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 '''
 log_regression_classifier = LogisticRegression(max_iter=10000)
 
-log_regression_classifier.fit(X_train, y_train.astype('int'))
+log_regression_classifier.fit(X_train, y_train)
 y_pred_nb = log_regression_classifier.predict(X_test)
 
 print('\n_________________________________Logistic Regression_________________________________')
