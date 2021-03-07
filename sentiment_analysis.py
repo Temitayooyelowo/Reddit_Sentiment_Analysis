@@ -27,7 +27,7 @@ y = df.values[:,1].astype('int')
 # use strip_accents to ignore non-english words https://stackoverflow.com/a/57286757
 curr_stop_words = ENGLISH_STOP_WORDS.union(["book"])
 # vectorizer = TfidfVectorizer(stop_words=curr_stop_words, lowercase=True, max_df=0.8, use_idf=True, strip_accents='ascii')
-vectorizer = TfidfVectorizer(lowercase=True, max_df=0.7, use_idf=True, strip_accents='ascii')
+vectorizer = TfidfVectorizer(stop_words=curr_stop_words, lowercase=True, max_df=0.7, use_idf=True, strip_accents='ascii')
 X = vectorizer.fit_transform(x)
 
 # print(vectorizer.get_feature_names()[36575])
