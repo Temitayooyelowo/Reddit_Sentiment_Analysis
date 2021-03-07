@@ -1,10 +1,15 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
+from nltk.corpus import stopwords
+
+# changing from ENGLISH_STOP_WORDS to nltk.corpus.stopwords increases the accuracy with LogisticRegression by about 3%
+# and increases the accuracy for multinomial naive bayes by about 3%
+curr_stop_words = set(stopwords.words('english'))
 
 '''
 train.values is a 2d array of
@@ -17,18 +22,14 @@ df = pd.read_csv('./dataset/Reddit_Data.csv', sep=',')
 # print(f'Sentences: {df.values[:,0]}')
 # print(f'Sentiment: {df.values[:,1]}')
 
-'''
-(37250,)
-(37250,)
-'''
 x = df.values[:,0].astype('U')
 y = df.values[:,1].astype('int')
 
 
 # use TfidfVectorizer to remove words that occur in more than 80% of features
 # use strip_accents to ignore non-english words https://stackoverflow.com/a/57286757
-# vectorizer = TfidfVectorizer(stop_words=curr_stop_words, lowercase=True, max_df=0.7, use_idf=True, strip_accents='ascii')
-vectorizer = CountVectorizer(stop_words=ENGLISH_STOP_WORDS, lowercase=True, binary = True, strip_accents='ascii')
+# vectorizer = TfidfVectorizer(stop_words=ENGLISH_STOP_WORDS.union(['book']), lowercase=True, max_df=0.7, use_idf=True, strip_accents='ascii')
+vectorizer = CountVectorizer(stop_words=curr_stop_words, lowercase=True, binary = True, strip_accents='ascii')
 
 X = vectorizer.fit_transform(x)
 
@@ -38,8 +39,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random
 
 
 '''
-Naive Bayes Prediction
-
+  Naive Bayes Prediction
 '''
 mnb_classifier = MultinomialNB()
 # mnb_classifier = BernoulliNB()
@@ -54,7 +54,7 @@ print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 
 
 '''
-  Naive Bayes Prediction
+  Logistic Regression Prediction
 '''
 log_regression_classifier = LogisticRegression(max_iter=10000)
 
