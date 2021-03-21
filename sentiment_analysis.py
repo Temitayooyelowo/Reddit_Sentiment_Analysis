@@ -4,6 +4,7 @@ import nltk
 import re
 import emoji
 
+from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from emot.emo_unicode import EMOTICONS
@@ -12,7 +13,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, Ha
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
-
 
 class TextPreprocessing:
   def __init__(self):
@@ -52,14 +52,22 @@ class TextPreprocessing:
 
     new_column = new_column.apply(self.convert_emojis_to_english)
     new_column = new_column.apply(self.convert_emoticons)
-    new_column = new_column.apply(self.lemmatize_words)
+    # new_column = new_column.apply(self.lemmatize_words)
 
     new_column = self.remove_punctuation_from_string(new_column)
     return new_column
 
+stop_words = set(stopwords.words('english'))
+
+class LemmaTokenizer(object):
+  def __init__(self):
+    self.wnl = WordNetLemmatizer()
+  def __call__(self, doc):
+    return [self.wnl.lemmatize(t) for t in word_tokenize(doc) if t not in stop_words]
 
 df = pd.read_csv('./dataset/Reddit_Data.csv', sep=',')
 x = df['clean_comment'].astype('U')
+y = df.values[:,1].astype('int')
 
 text_preprocessing = TextPreprocessing()
 new_column = text_preprocessing.clean_data(x)
@@ -68,15 +76,12 @@ print(new_column.head())
 
 # nltk.download('stopwords')
 
-stop_words = set(stopwords.words('english'))
-y = df.values[:,1].astype('int')
-
 '''
   we use the count vectorizer to vectorize based on frequency of occurrence which favours words that occur more frequently
 '''
 # vectorizer = TfidfVectorizer(stop_words=stop_words, max_df=0.6, use_idf=True, strip_accents='ascii')
 # vectorizer = HashingVectorizer(stop_words=stop_words, lowercase=True, strip_accents='ascii')
-vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii')
+vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
 
 X = vectorizer.fit_transform(new_column)
 
