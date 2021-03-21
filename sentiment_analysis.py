@@ -1,21 +1,22 @@
 import numpy as np
 import pandas as pd
-
 import nltk
 import re
 import emoji
 
 from nltk.corpus import stopwords
-from emot.emo_unicode import EMOTICONS, UNICODE_EMO
+from nltk.stem import WordNetLemmatizer
+from emot.emo_unicode import EMOTICONS
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, HashingVectorizer
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
 
+
 class TextPreprocessing:
   def __init__(self):
-    pass
+    self.lemmatizer = WordNetLemmatizer()
 
   '''
   https://www.kite.com/python/answers/how-to-make-a-pandas-dataframe-string-column-lowercase-in-python#:~:text=Use%20str.,%5B%22first_column%22%5D%20lowercase.
@@ -34,9 +35,6 @@ class TextPreprocessing:
 
   def convert_emojis_to_english(self, text):
     return emoji.demojize(text).replace(':','')
-    # for emot in UNICODE_EMO:
-    #   text = re.sub(re.escape(r'('+emot+')'), "_".join(UNICODE_EMO[emot].replace(",","").replace(":","").split()), text)
-    # return text
 
   # Converting emoticons to words
   def convert_emoticons(self, text):
@@ -44,18 +42,19 @@ class TextPreprocessing:
       text = re.sub(u'('+emot+')', "_".join(EMOTICONS[emot].replace(",","").split()), text)
     return text
 
-  def clean_data(self, pd_column):
-    # print(pd_column.head())
+  def lemmatize_words(self, text):
+    return lemmatizer.lemmatize(text)
 
+  def clean_data(self, pd_column):
     new_column = self.convert_to_lower_case(pd_column)
     new_column = self.remove_usernames_and_subreddit_names(new_column)
     new_column = self.remove_url(new_column)
 
-    new_column = pd_column.apply(self.convert_emojis_to_english)
+    new_column = new_column.apply(self.convert_emojis_to_english)
     new_column = new_column.apply(self.convert_emoticons)
+    new_column = new_column.apply(self.lemmatize_words)
 
     new_column = self.remove_punctuation_from_string(new_column)
-
     return new_column
 
 
@@ -65,7 +64,6 @@ x = df['clean_comment'].astype('U')
 text_preprocessing = TextPreprocessing()
 new_column = text_preprocessing.clean_data(x)
 
-# print(x)
 print(new_column.head())
 
 # nltk.download('stopwords')
@@ -73,9 +71,11 @@ print(new_column.head())
 stop_words = set(stopwords.words('english'))
 y = df.values[:,1].astype('int')
 
-# use TfidfVectorizer to remove words that occur in more than 80% of features
-# use strip_accents to ignore non-english words https://stackoverflow.com/a/57286757
-# vectorizer = TfidfVectorizer(stop_words=ENGLISH_STOP_WORDS.union(['book']), lowercase=True, max_df=0.7, use_idf=True, strip_accents='ascii')
+'''
+  we use the count vectorizer to vectorize based on frequency of occurrence which favours words that occur more frequently
+'''
+# vectorizer = TfidfVectorizer(stop_words=stop_words, max_df=0.6, use_idf=True, strip_accents='ascii')
+# vectorizer = HashingVectorizer(stop_words=stop_words, lowercase=True, strip_accents='ascii')
 vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii')
 
 X = vectorizer.fit_transform(new_column)
@@ -96,6 +96,9 @@ print('\n_________________________________Multionmial Naive Bayes_______________
 print(metrics.classification_report(y_test, y_pred_nb))
 print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 
+# 0.6281879194630873 count vectorizer
+# 0.5562416107382551 tfidf vectorizer
+
 '''
   Logistic Regression Prediction
 '''
@@ -107,3 +110,6 @@ y_pred_nb = log_regression_classifier.predict(X_test)
 print('\n_________________________________Logistic Regression_________________________________')
 print(metrics.classification_report(y_test, y_pred_nb))
 print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
+# 0.854675615212528 # count vectorizer
+# 0.821744966442953 # tfidf vectorizer
+# 0.8297091722595078 # hashing vectorizer
