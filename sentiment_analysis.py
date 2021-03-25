@@ -14,6 +14,11 @@ from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
 
+# would not work without these for me - Isaac
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
+
 class TextPreprocessing:
   def __init__(self):
     self.lemmatizer = WordNetLemmatizer()
@@ -110,7 +115,9 @@ print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 log_regression_classifier = LogisticRegression(max_iter=10000)
 
 log_regression_classifier.fit(X_train, y_train)
+print(X_train)
 y_pred_nb = log_regression_classifier.predict(X_test)
+
 
 print('\n_________________________________Logistic Regression_________________________________')
 print(metrics.classification_report(y_test, y_pred_nb))
