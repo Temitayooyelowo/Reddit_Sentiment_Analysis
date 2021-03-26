@@ -44,12 +44,11 @@ class RedditAPI:
 
 
 
-# HOW TO USE IT
-# if __name__== "__main__":
-#     r = RedditAPI()
-#     end = datetime.now()
-#     start = end - timedelta(days=100)
+if __name__== "__main__":
+    r = RedditAPI()
+    end = datetime.now()
+    start = end - timedelta(days=100)
     
-#     # print(start.strftime('%s'))
-#     # print(end.strftime('%s'))
-#     print(r.search_for_posts(f'GME', str(1000), start.strftime('%s'), end.strftime('%s'), f'wallstreetbets'))
+    # print(start.strftime('%s'))
+    # print(end.strftime('%s'))
+    print(r.search_for_posts(f'GME', str(1000), start.strftime('%s'), end.strftime('%s'), f'wallstreetbets'))

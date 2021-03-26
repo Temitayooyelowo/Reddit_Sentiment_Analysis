@@ -14,10 +14,10 @@ from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
 
-# would not work without these for me - Isaac
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
+# Uncomment if you haven't installed stopwords, punkt, and wordnet
+# nltk.download('stopwords')
+# nltk.download('punkt')
+# nltk.download('wordnet')
 
 class TextPreprocessing:
   def __init__(self):
@@ -70,58 +70,120 @@ class LemmaTokenizer(object):
   def __call__(self, doc):
     return [self.wnl.lemmatize(t) for t in word_tokenize(doc) if t not in stop_words]
 
-df = pd.read_csv('./dataset/Reddit_Data.csv', sep=',')
-x = df['clean_comment'].astype('U')
-y = df.values[:,1].astype('int')
 
-text_preprocessing = TextPreprocessing()
-new_column = text_preprocessing.clean_data(x)
+class LogisticRegressionModel:
+  def __init__(self):
+    self.df = None
 
-print(new_column.head())
+  def initialize_dataset(self):
+    self.df = pd.read_csv('./dataset/Reddit_Data.csv', sep=',')
+    x = self.df['clean_comment'].astype('U')
+    y = self.df.values[:,1].astype('int')
+
+    return x, y
+
+  def train_model(self):
+    x, Y = self.initialize_dataset()
+    clean_column = self.clean_data(x)
+    X = self.setup_vectorizer(clean_column)
+    X_train, X_test, y_train, y_test = self.split_into_test_and_train(X, Y)
+    print(X_train)
+    # self.train_data(X_train, y_train)
+    # y_pred_nb = self.predict_data(X_test)
+    # self.report_accuracy(y_pred_nb, y_test)
+
+  def clean_data(self, x):
+    text_preprocessing = TextPreprocessing()
+    clean_column = text_preprocessing.clean_data(x)
+    print(clean_column.head())
+    return clean_column
+
+  def setup_vectorizer(self, clean_column):
+    '''
+      we use the count vectorizer to vectorize based on frequency of occurrence which favours words that occur more frequently
+    '''
+    # vectorizer = TfidfVectorizer(stop_words=stop_words, max_df=0.6, use_idf=True, strip_accents='ascii')
+    vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
+
+    X = vectorizer.fit_transform(clean_column)
+    return X
+
+  def split_into_test_and_train(self, X, Y):
+    return train_test_split(X, Y, train_size=0.7, random_state=42)
+
+  def train_data(self, X_train, y_train):
+    self.log_regression_classifier = LogisticRegression(max_iter=10000)
+    self.log_regression_classifier.fit(X_train, y_train)
+
+  def predict_data(self, X_test):
+    return self.log_regression_classifier.predict(X_test)
+
+  def report_accuracy(self, y_pred_nb, y_test):
+    print('\n_________________________________Logistic Regression_________________________________')
+    print(metrics.classification_report(y_test, y_pred_nb))
+    print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 
 # nltk.download('stopwords')
 
-'''
-  we use the count vectorizer to vectorize based on frequency of occurrence which favours words that occur more frequently
-'''
-# vectorizer = TfidfVectorizer(stop_words=stop_words, max_df=0.6, use_idf=True, strip_accents='ascii')
-# vectorizer = HashingVectorizer(stop_words=stop_words, lowercase=True, strip_accents='ascii')
-vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
 
-X = vectorizer.fit_transform(new_column)
+# vectorizer = HashingVectorizer(stop_words=stop_words, lowercase=True, strip_accents='ascii')
+
 
 # split data such that we train our model on 70% of the data and test on 30%
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=42)
+# X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=42)
 
-'''
-  Naive Bayes Prediction
-'''
-mnb_classifier = MultinomialNB()
-# mnb_classifier = BernoulliNB()
+# '''
+#   Naive Bayes Prediction
+# '''
+# mnb_classifier = MultinomialNB()
+# # mnb_classifier = BernoulliNB()
 
-mnb_classifier.fit(X_train, y_train)
-y_pred_nb = mnb_classifier.predict(X_test)
+# mnb_classifier.fit(X_train, y_train)
+# y_pred_nb = mnb_classifier.predict(X_test)
 
-print('\n_________________________________Multionmial Naive Bayes_________________________________')
-print(metrics.classification_report(y_test, y_pred_nb))
-print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
+# print('\n_________________________________Multionmial Naive Bayes_________________________________')
+# print(metrics.classification_report(y_test, y_pred_nb))
+# print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 
-# 0.6281879194630873 count vectorizer
-# 0.5562416107382551 tfidf vectorizer
+# # 0.6281879194630873 count vectorizer
+# # 0.5562416107382551 tfidf vectorizer
 
-'''
-  Logistic Regression Prediction
-'''
-log_regression_classifier = LogisticRegression(max_iter=10000)
+# '''
+#   Logistic Regression Prediction
+# '''
+# log_regression_classifier = LogisticRegression(max_iter=10000)
 
-log_regression_classifier.fit(X_train, y_train)
-print(X_train)
-y_pred_nb = log_regression_classifier.predict(X_test)
+# log_regression_classifier.fit(X_train, y_train)
+# print(X_train)
+# y_pred_nb = log_regression_classifier.predict(X_test)
 
 
-print('\n_________________________________Logistic Regression_________________________________')
-print(metrics.classification_report(y_test, y_pred_nb))
-print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
-# 0.854675615212528 # count vectorizer
-# 0.821744966442953 # tfidf vectorizer
-# 0.8297091722595078 # hashing vectorizer
+# print('\n_________________________________Logistic Regression_________________________________')
+# print(metrics.classification_report(y_test, y_pred_nb))
+# print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
+# # 0.854675615212528 # count vectorizer
+# # 0.821744966442953 # tfidf vectorizer
+# # 0.8297091722595078 # hashing vectorizer
+
+
+if __name__ == "__main__":
+  log_regression = LogisticRegressionModel()
+  log_regression.train_model()
+
+  test = {
+    'body': [
+      'GME to the moon!', # 1
+      'I hit my head on a pole and became more retarded.', # 0
+      'I used my kids tuition to buy GME, my wife found out and filed for divorce!' #-1
+    ]}
+  df = pd.DataFrame(data=test)
+  print(df.head())
+
+  x = df['body'].astype('U')
+  clean_column = log_regression.clean_data(x)
+  X = log_regression.setup_vectorizer(clean_column)
+
+  print(f'\n\n{X}')
+  # y_pred_nb = log_regression.predict_data(X)
+  # print(y_pred_nb)
+
