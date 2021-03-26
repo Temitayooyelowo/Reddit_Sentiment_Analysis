@@ -71,14 +71,17 @@ class LemmaTokenizer(object):
     return [self.wnl.lemmatize(t) for t in word_tokenize(doc) if t not in stop_words]
 
 
-class LogisticRegressionModel:
+class SentimentAnalysis:
   def __init__(self):
-    self.df = None
+    pass
 
   def initialize_dataset(self):
-    self.df = pd.read_csv('./dataset/Reddit_Data.csv', sep=',')
-    x = self.df['clean_comment'].astype('U')
-    y = self.df.values[:,1].astype('int')
+    file_names = ['Reddit_Data.csv', 'test_preprocessing.csv']
+    # list comprehension performs better in terms of performance since we don't need to append to the array each time
+    frames = [pd.read_csv(f'./dataset/{file_name}', sep=',') for file_name in file_names]
+    df = pd.concat(frames, ignore_index=True)
+    x = df['clean_comment'].astype('U')
+    y = df.values[:,1].astype('int')
 
     return x, y
 
@@ -87,10 +90,16 @@ class LogisticRegressionModel:
     clean_column = self.clean_data(x)
     X = self.setup_vectorizer(clean_column)
     X_train, X_test, y_train, y_test = self.split_into_test_and_train(X, Y)
-    print(X_train)
-    # self.train_data(X_train, y_train)
-    # y_pred_nb = self.predict_data(X_test)
-    # self.report_accuracy(y_pred_nb, y_test)
+
+    # Naive Bayes
+    self.naive_bayes_train(X_train, y_train)
+    naive_bayes_sentiments = self.naive_bayes_predict(X_test)
+    self.report_accuracy(naive_bayes_sentiments, y_test, 'Naive Bayes')
+
+    # Logistic Regression
+    self.logistic_regression_train(X_train, y_train)
+    logistic_regression_sentiments = self.logistic_regression_predict(X_test)
+    self.report_accuracy(logistic_regression_sentiments, y_test, 'Logistic Regression')
 
   def clean_data(self, x):
     text_preprocessing = TextPreprocessing()
@@ -102,88 +111,60 @@ class LogisticRegressionModel:
     '''
       we use the count vectorizer to vectorize based on frequency of occurrence which favours words that occur more frequently
     '''
+    # vectorizer = HashingVectorizer(stop_words=stop_words, lowercase=True, strip_accents='ascii')
     # vectorizer = TfidfVectorizer(stop_words=stop_words, max_df=0.6, use_idf=True, strip_accents='ascii')
-    vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
+    self.vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
 
-    X = vectorizer.fit_transform(clean_column)
+    X = self.vectorizer.fit_transform(clean_column)
     return X
 
   def split_into_test_and_train(self, X, Y):
     return train_test_split(X, Y, train_size=0.7, random_state=42)
 
-  def train_data(self, X_train, y_train):
+  def logistic_regression_train(self, X_train, y_train):
     self.log_regression_classifier = LogisticRegression(max_iter=10000)
     self.log_regression_classifier.fit(X_train, y_train)
 
-  def predict_data(self, X_test):
+  def logistic_regression_predict(self, X_test):
     return self.log_regression_classifier.predict(X_test)
+    # 0.854675615212528 # count vectorizer
+    # 0.821744966442953 # tfidf vectorizer
+    # 0.8297091722595078 # hashing vectorizer
 
-  def report_accuracy(self, y_pred_nb, y_test):
-    print('\n_________________________________Logistic Regression_________________________________')
+  def naive_bayes_train(self, X_train, y_train):
+    self.naive_bayes_classifier = MultinomialNB()
+    # mnb_classifier = BernoulliNB()
+
+    self.naive_bayes_classifier.fit(X_train, y_train)
+
+  def naive_bayes_predict(self, X_test):
+    return self.naive_bayes_classifier.predict(X_test)
+    # 0.6281879194630873 count vectorizer
+    # 0.5562416107382551 tfidf vectorizer
+
+  def report_accuracy(self, y_pred_nb, y_test, model_name):
+    print(f'\n_________________________________{model_name}_________________________________')
     print(metrics.classification_report(y_test, y_pred_nb))
     print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 
-# nltk.download('stopwords')
-
-
-# vectorizer = HashingVectorizer(stop_words=stop_words, lowercase=True, strip_accents='ascii')
-
-
-# split data such that we train our model on 70% of the data and test on 30%
-# X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=42)
-
-# '''
-#   Naive Bayes Prediction
-# '''
-# mnb_classifier = MultinomialNB()
-# # mnb_classifier = BernoulliNB()
-
-# mnb_classifier.fit(X_train, y_train)
-# y_pred_nb = mnb_classifier.predict(X_test)
-
-# print('\n_________________________________Multionmial Naive Bayes_________________________________')
-# print(metrics.classification_report(y_test, y_pred_nb))
-# print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
-
-# # 0.6281879194630873 count vectorizer
-# # 0.5562416107382551 tfidf vectorizer
-
-# '''
-#   Logistic Regression Prediction
-# '''
-# log_regression_classifier = LogisticRegression(max_iter=10000)
-
-# log_regression_classifier.fit(X_train, y_train)
-# print(X_train)
-# y_pred_nb = log_regression_classifier.predict(X_test)
-
-
-# print('\n_________________________________Logistic Regression_________________________________')
-# print(metrics.classification_report(y_test, y_pred_nb))
-# print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
-# # 0.854675615212528 # count vectorizer
-# # 0.821744966442953 # tfidf vectorizer
-# # 0.8297091722595078 # hashing vectorizer
-
 
 if __name__ == "__main__":
-  log_regression = LogisticRegressionModel()
-  log_regression.train_model()
-
   test = {
     'body': [
-      'GME to the moon!', # 1
+      'I want to buy ARKK!! ARKK to the moon!', # 1
       'I hit my head on a pole and became more retarded.', # 0
-      'I used my kids tuition to buy GME, my wife found out and filed for divorce!' #-1
-    ]}
+      'I used my kids tuition to buy BB, my wife found out and filed for divorce!' #-1
+    ]
+  }
   df = pd.DataFrame(data=test)
   print(df.head())
 
   x = df['body'].astype('U')
-  clean_column = log_regression.clean_data(x)
-  X = log_regression.setup_vectorizer(clean_column)
+  clean_column = sentiment_analysis.clean_data(x)
+  X = sentiment_analysis.vectorizer.transform(clean_column)
 
-  print(f'\n\n{X}')
-  # y_pred_nb = log_regression.predict_data(X)
-  # print(y_pred_nb)
+  y_pred_nb = sentiment_analysis.naive_bayes_predict(X)
+  print(f'Naive Bayes Sentiment: {y_pred_nb}')
 
+  y_pred_nb = sentiment_analysis.logistic_regression_predict(X)
+  print(f'Logistic Regression Sentiment: {y_pred_nb}')
