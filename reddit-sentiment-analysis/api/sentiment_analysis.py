@@ -148,23 +148,25 @@ class SentimentAnalysis:
     print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 
 
-if __name__ == "__main__":
-  test = {
-    'body': [
-      'I want to buy ARKK!! ARKK to the moon!', # 1
-      'I hit my head on a pole and became more retarded.', # 0
-      'I used my kids tuition to buy BB, my wife found out and filed for divorce!' #-1
-    ]
-  }
-  df = pd.DataFrame(data=test)
-  print(df.head())
+# if __name__ == "__main__":
+#   sentiment_analysis = SentimentAnalysis()
+#   sentiment_analysis.train_model()
+#   test = {
+#     'body': [
+#       'I want to buy ARKK!! ARKK to the moon!', # 1
+#       'I hit my head on a pole and became more retarded.', # 0
+#       'I used my kids tuition to buy BB, my wife found out and filed for divorce!' #-1
+#     ]
+#   }
+#   df = pd.DataFrame(data=test)
+#   print(df.head())
 
-  x = df['body'].astype('U')
-  clean_column = sentiment_analysis.clean_data(x)
-  X = sentiment_analysis.vectorizer.transform(clean_column)
+#   x = df['body'].astype('U')
+#   clean_column = sentiment_analysis.clean_data(x)
+#   X = sentiment_analysis.vectorizer.transform(clean_column)
 
-  y_pred_nb = sentiment_analysis.naive_bayes_predict(X)
-  print(f'Naive Bayes Sentiment: {y_pred_nb}')
+#   y_pred_nb = sentiment_analysis.naive_bayes_predict(X)
+#   print(f'Naive Bayes Sentiment: {y_pred_nb}')
 
-  y_pred_nb = sentiment_analysis.logistic_regression_predict(X)
-  print(f'Logistic Regression Sentiment: {y_pred_nb}')
+#   y_pred_nb = sentiment_analysis.logistic_regression_predict(X)
+#   print(f'Logistic Regression Sentiment: {y_pred_nb}')

@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime, timedelta
 from json import loads
+import time
 
 class RedditAPI:
     def __init__(self):
@@ -20,11 +21,13 @@ class RedditAPI:
 
     def search_for_posts(self, query, size, start_date, end_date, subreddits):
         url = f'https://api.pushshift.io/reddit/search/submission/?q={query}&size={size}&before={end_date}&after={start_date}&subreddit={subreddits}&sort_type=score&sort=desc'
-        # print(start_date)
-        # print(end_date)
-        print(url)
-        res = requests.get(url)
-        return loads(res.text)
+        res = loads(requests.get(url).text)
+        
+        list_of_post_titles = []
+        for post in res['data']:
+            list_of_post_titles.append(post['title'])
+
+        return list_of_post_titles
         
     '''
     inputs:
@@ -38,17 +41,28 @@ class RedditAPI:
     notes: sorts results by the reddit score in descending order
     '''
     def search_for_comments(self, query, size, start_date, end_date, subreddits):
-        url = f'https://api.pushshift.io/reddit/search/comments/?q={query}&size={size}&before={end_date}&after={start_date}&subreddit={subreddits}&sort_type=score&sort=desc'
-        res = requests.get(url)
-        return loads(res.text)
+        url = f'https://api.pushshift.io/reddit/search/comment/?q={query}&size={size}&before={end_date}&after={start_date}&subreddit={subreddits}&sort_type=score&sort=desc'
+        res = loads(requests.get(url).text)
+        
+        list_of_comments = []
+
+        for post in res['data']:
+            list_of_comments.append(post['body'])
+
+        return list_of_comments
 
 
 
-if __name__== "__main__":
-    r = RedditAPI()
-    end = datetime.now()
-    start = end - timedelta(days=100)
+# if __name__== "__main__":
+#     r = RedditAPI()
+#     format = "%m/%d/%Y %H:%M:%S"
+#     now = datetime.now()
+#     start = now - timedelta(days=100)
     
-    # print(start.strftime('%s'))
-    # print(end.strftime('%s'))
-    print(r.search_for_posts(f'GME', str(1000), start.strftime('%s'), end.strftime('%s'), f'wallstreetbets'))
+#     end_ep = int(time.mktime(time.strptime(f'{now.month}/{now.day}/{now.year} {now.hour}:{now.minute}:{now.second}', format)))
+#     start_ep = int(time.mktime(time.strptime(f'{start.month}/{start.day}/{start.year} {start.hour}:{start.minute}:{start.second}', format)))
+
+#     # print(start.strftime('%s'))
+#     print(end_ep)
+#     print(start_ep)
+#     print(r.search_for_comments(f'GME', 10, start_ep, end_ep, f'wallstreetbets'))
