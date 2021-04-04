@@ -27,10 +27,17 @@ class RedditAPI:
     def search_for_posts(self, query, size, start_date, end_date, subreddits):
         url = f'https://api.pushshift.io/reddit/search/submission/?q={query}&limit={size}&before={end_date}&after={start_date}&subreddit={subreddits}&sort_type=score&sort=desc'
         res = loads(requests.get(url).text)
-        
+        list_of_comments = []
         # res = list(api.search_submissions(subreddit=subreddits, limit=size, before=end_date, after=start_date, sort='desc', sort_type='score'))
 
-        return [post['title'] for post in res['data']]
+        for post in res['data']:
+            post_id = post['permalink'].split('/')[4]
+            print(post_id)
+            res_comments = loads(requests.get(f'https://api.pushshift.io/reddit/search/comment/?link_id={post_id}&size=1000&sort_type=score&sort=desc').text)
+            list_of_comments.extend([comment['body'] for comment in res_comments['data'] if comment['body'] != '[removed]'])
+            
+        
+        return list_of_comments
         
     '''
     inputs:
@@ -65,6 +72,6 @@ class RedditAPI:
 #     # print(start.strftime('%s'))
 #     print(end_ep)
 #     print(start_ep)
-#     res = r.search_for_comments(f'GME', 100, start_ep, end_ep, f'wallstreetbets')
+#     res = r.search_for_posts(f'GME', 10, start_ep, end_ep, f'wallstreetbets')
 #     print(res)
 #     print(len(res))
