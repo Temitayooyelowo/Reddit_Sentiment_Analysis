@@ -51,19 +51,21 @@ def sentiment():
 
 	results = get_sentiment({'body': comments})
 	print(results)
-	return jsonify({'sentiments': results, 'average': sum(results)/len(results)})
+	return jsonify({'sentiments': results.tolist()})
 
 def get_sentiment(data):
 	df = pd.DataFrame(data=data)
 
 	x = df['body'].astype('U')
 	clean_column = sentiment.clean_data(x)
-	X = sentiment.vectorize.transform(clean_column)
+	X = sentiment.vectorizer.transform(clean_column)
 
 	y_pred_nb = sentiment.logistic_regression_predict(X)
 
 	return y_pred_nb
 
+sentiment = SentimentAnalysis()
 if __name__ == '__main__':
+	# sentiment.something()
 	sentiment.train_model()
 	app.run(debug=True)
