@@ -7,7 +7,7 @@ import emoji
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-from emot.emo_unicode import EMOTICONS
+from emot.emo_unicode import UNICODE_EMO, EMOTICONS
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, HashingVectorizer
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
@@ -18,6 +18,22 @@ from sklearn.linear_model import LogisticRegression
 # nltk.download('stopwords')
 # nltk.download('punkt')
 # nltk.download('wordnet')
+
+def create_stop_words():
+  file_names = ['nasdaq_screener_1616787733047.csv', 'nasdaq_screener_1616787777844.csv', 'nasdaq_screener_1616787801745.csv']
+  # list comprehension performs better in terms of performance since we don't need to append to the array each time
+  frames = [pd.read_csv(f'./dataset/tickers/{file_name}', sep=',', usecols= ['Symbol']) for file_name in file_names]
+
+  df = pd.concat(frames, ignore_index=True)
+  stock_tickers = df['Symbol'].str.lower()
+
+  series_set = set(stock_tickers)
+  # stop_words = set(stopwords.words('english'))
+  # return series_set.union(stop_words)
+
+  return series_set
+
+stop_words = create_stop_words()
 
 class TextPreprocessing:
   def __init__(self):
@@ -39,7 +55,7 @@ class TextPreprocessing:
     return pd_column.str.replace('u\/\S+|@\S+|r\/\S+', '')
 
   def convert_emojis_to_english(self, text):
-    return emoji.demojize(text).replace(':','')
+    return emoji.demojize(text).replace(':',' ')
 
   # Converting emoticons to words
   def convert_emoticons(self, text):
@@ -50,6 +66,9 @@ class TextPreprocessing:
   def lemmatize_words(self, text):
     return lemmatizer.lemmatize(text)
 
+  def stop_words(self, text):
+    return " ".join([word for word in str(text).split() if word not in stop_words])
+
   def clean_data(self, pd_column):
     new_column = self.convert_to_lower_case(pd_column)
     new_column = self.remove_usernames_and_subreddit_names(new_column)
@@ -57,12 +76,11 @@ class TextPreprocessing:
 
     new_column = new_column.apply(self.convert_emojis_to_english)
     new_column = new_column.apply(self.convert_emoticons)
+    new_column = self.remove_punctuation_from_string(new_column)
+    new_column = new_column.apply(self.stop_words)
     # new_column = new_column.apply(self.lemmatize_words)
 
-    new_column = self.remove_punctuation_from_string(new_column)
     return new_column
-
-stop_words = set(stopwords.words('english'))
 
 class LemmaTokenizer(object):
   def __init__(self):
@@ -76,11 +94,12 @@ class SentimentAnalysis:
     pass
 
   def initialize_dataset(self):
-    # file_names = ['Reddit_Data.csv', 'test_preprocessing.csv']
+    # file_names = ['test_preprocessing.csv', 'Reddit_Data.csv']
     file_names = ['test_preprocessing.csv']
     # list comprehension performs better in terms of performance since we don't need to append to the array each time
     frames = [pd.read_csv(f'../dataset/{file_name}', sep=',') for file_name in file_names]
     df = pd.concat(frames, ignore_index=True)
+    print('\n', df.head())
     x = df['clean_comment'].astype('U')
     y = df.values[:,1].astype('int')
 
@@ -114,7 +133,7 @@ class SentimentAnalysis:
     '''
     # vectorizer = HashingVectorizer(stop_words=stop_words, lowercase=True, strip_accents='ascii')
     # vectorizer = TfidfVectorizer(stop_words=stop_words, max_df=0.6, use_idf=True, strip_accents='ascii')
-    self.vectorizer = CountVectorizer(stop_words=stop_words, lowercase=True, binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
+    self.vectorizer = CountVectorizer(binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
 
     X = self.vectorizer.fit_transform(clean_column)
     return X
@@ -148,26 +167,31 @@ class SentimentAnalysis:
     print(metrics.classification_report(y_test, y_pred_nb))
     print('Accuracy: ', metrics.accuracy_score(y_test, y_pred_nb))
 
+if __name__ == "__main__":
+  sentiment_analysis = SentimentAnalysis()
+  sentiment_analysis.train_model()
 
-# if __name__ == "__main__":
-#   sentiment_analysis = SentimentAnalysis()
-#   sentiment_analysis.train_model()
-#   test = {
-#     'body': [
-#       'I want to buy ARKK!! ARKK to the moon!', # 1
-#       'I hit my head on a pole and became more retarded.', # 0
-#       'I used my kids tuition to buy BB, my wife found out and filed for divorce!' #-1
-#     ]
-#   }
-#   df = pd.DataFrame(data=test)
-#   print(df.head())
+  test = {
+    'body': [
+      'I want to buy PD!! PD to the moon!', # 1
+      'I hit my head on a pole and became more retarded', # 0
+      'I used my kids tuition to buy BB, my wife found out and filed for divorce!', #-1
+      '🚀', #1
+    ]
+  }
+  df = pd.DataFrame(data=test)
+  print(df.head(), '\n')
 
-#   x = df['body'].astype('U')
-#   clean_column = sentiment_analysis.clean_data(x)
-#   X = sentiment_analysis.vectorizer.transform(clean_column)
+  x = df['body'].astype('U')
+  clean_column = sentiment_analysis.clean_data(x)
+  X = sentiment_analysis.vectorizer.transform(clean_column)
 
-#   y_pred_nb = sentiment_analysis.naive_bayes_predict(X)
-#   print(f'Naive Bayes Sentiment: {y_pred_nb}')
+  y_pred_nb = sentiment_analysis.naive_bayes_predict(X)
+  print(f'Naive Bayes Sentiment: {y_pred_nb}')
 
-#   y_pred_nb = sentiment_analysis.logistic_regression_predict(X)
-#   print(f'Logistic Regression Sentiment: {y_pred_nb}')
+  y_pred_nb = sentiment_analysis.logistic_regression_predict(X)
+  print(f'Logistic Regression Sentiment: {y_pred_nb}')
+
+  '''
+    prediction is currently [1 0 1 1] instead of [1 0 -1 1]
+  '''
