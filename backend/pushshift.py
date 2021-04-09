@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from json import loads
-from multiprocessing import Process, Queue
+from threading import Thread
 # from pmaw import PushshiftAPI
 import time
 import requests
@@ -25,25 +25,33 @@ class RedditAPI:
     '''
 
     def search_for_posts(self, query, size, start_date, end_date, subreddits):
+        list_of_comments = [] #lists are thread safe so we don't need a lock
+        jobs = []
+
         url = f'https://api.pushshift.io/reddit/search/submission/?q={query}&limit={size}&before={end_date}&after={start_date}&subreddit={subreddits}&sort_type=score&sort=desc'
         res = requests.get(url).json()
-        list_of_comments = []
-        queue_of_comments = Queue()
 
-        jobs = []
         for post in res['data']:
             post_id = post['permalink'].split('/')[4]
-            p = Process(target=self.search_for_comments_by_post_id, args=(post_id, queue_of_comments))
-            jobs.append(p)
-            p.start()
+            thread = Thread(target=self.search_for_comments_by_post_id, args=(post_id, list_of_comments))
+            jobs.append(thread)
+            thread.start()
 
+        # tells main thread to wait for threads to complete before continuing
         for job in jobs:
             job.join()
 
-        queue_of_comments.put('FINISHED')
-        return queue_of_comments
+        return list_of_comments
 
-    def search_for_comments_by_post_id(self, post_id, queue_of_comments):
+    '''
+    inputs:
+        post_id: the id that uniquely identifies a post on Reddit, this is used to get the comments regarding a specific post
+        list_of_comments: a list that contains the comments from Reddit
+
+    output: does not return any output since arrays are passed by references
+    notes: sorts results by the reddit score in descending order
+    '''
+    def search_for_comments_by_post_id(self, post_id, list_of_comments):
         try:
             res_comments = requests.get(f'https://api.pushshift.io/reddit/search/comment/?link_id={post_id}&size=100&sort_type=score&sort=desc').json()
         except e:
@@ -52,8 +60,9 @@ class RedditAPI:
             print(res_comments)
 
         for comment in res_comments['data']:
+            # this seems to filter a lot of the comments, when applying this it literally changed from 281 to 500
             if comment['body'] != '[removed]' and comment['body'] != '[deleted]':
-                queue_of_comments.put(comment['body'])
+                list_of_comments.append(comment['body'])
 
     '''
     inputs:
@@ -76,7 +85,7 @@ class RedditAPI:
 
 
 
-if __name__== "__main__":
+if __name__ == "__main__":
     r = RedditAPI()
     format = "%m/%d/%Y %H:%M:%S"
     now = datetime.now()
@@ -88,18 +97,10 @@ if __name__== "__main__":
     # print(start.strftime('%s'))
     print(end_ep)
     print(start_ep)
-    t1 = time.time()
-    res = r.search_for_posts(f'GME', 5, start_ep, end_ep, f'wallstreetbets')
-    t2 = time.time()
+    start_time = time.time()
+    comments_list = r.search_for_posts(f'GME', 5, start_ep, end_ep, f'wallstreetbets')
+    end_time = time.time() - start_time
 
-    # comments_list = []
-    # while True:
-    #     item = res.get()
-    #     if (item == 'FINISHED'):
-    #         break
-    #     comments_list.append(item)
-    # res = comments_list
-
-    print('Comments List: ', res)
-    print(len(res))
-    print(f'\n\nTIME ELAPSED: {t2 - t1}s\n\n')
+    print('Comments List: ', comments_list)
+    print(f'Length of comment list: {len(comments_list)}')
+    print(f'\n\nTIME ELAPSED: {end_time}s\n\n')
