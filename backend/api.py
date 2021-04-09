@@ -50,8 +50,19 @@ def sentiment():
 	comments = reddit.search_for_comments(body['ticker'], 1000, start_epoch, end_epoch, 'wallstreetbets')
 
 	results = get_sentiment({'body': comments})
-	print(results)
-	return jsonify({'sentiments': results.tolist()})
+	pos = ['positive', 0]
+	neu = ['neutral', 0]
+	neg = ['negative', 0]
+	
+	for s in results.tolist():
+		if s == 1:
+			pos[1] += 1
+		elif s == 0:
+			neu[1] += 1
+		elif s == -1:
+			neg[1] += 1
+		
+	return jsonify({'sentiment': max([pos,neu,neg], key= lambda item:item[1])[0]})
 
 def get_sentiment(data):
 	df = pd.DataFrame(data=data)

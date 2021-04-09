@@ -22,7 +22,7 @@ from sklearn.linear_model import LogisticRegression
 def create_stop_words():
   file_names = ['nasdaq_screener_1616787733047.csv', 'nasdaq_screener_1616787777844.csv', 'nasdaq_screener_1616787801745.csv']
   # list comprehension performs better in terms of performance since we don't need to append to the array each time
-  frames = [pd.read_csv(f'./dataset/tickers/{file_name}', sep=',', usecols= ['Symbol']) for file_name in file_names]
+  frames = [pd.read_csv(f'../dataset/tickers/{file_name}', sep=',', usecols= ['Symbol']) for file_name in file_names]
 
   df = pd.concat(frames, ignore_index=True)
   stock_tickers = df['Symbol'].str.lower()
