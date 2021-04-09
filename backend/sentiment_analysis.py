@@ -76,7 +76,8 @@ class SentimentAnalysis:
     pass
 
   def initialize_dataset(self):
-    file_names = ['Reddit_Data.csv', 'test_preprocessing.csv']
+    # file_names = ['Reddit_Data.csv', 'test_preprocessing.csv']
+    file_names = ['test_preprocessing.csv']
     # list comprehension performs better in terms of performance since we don't need to append to the array each time
     frames = [pd.read_csv(f'../dataset/{file_name}', sep=',') for file_name in file_names]
     df = pd.concat(frames, ignore_index=True)
@@ -84,9 +85,6 @@ class SentimentAnalysis:
     y = df.values[:,1].astype('int')
 
     return x, y
-
-  def something(self):
-        print('it works')
 
   def train_model(self):
     x, Y = self.initialize_dataset()

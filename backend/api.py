@@ -66,6 +66,5 @@ def get_sentiment(data):
 
 sentiment = SentimentAnalysis()
 if __name__ == '__main__':
-	# sentiment.something()
 	sentiment.train_model()
-	app.run(debug=True)
+	app.run(debug=False)

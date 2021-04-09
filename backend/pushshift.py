@@ -5,7 +5,6 @@ import time
 import requests
 
 
-
 # api = PushshiftAPI()
 
 class RedditAPI:
@@ -25,16 +24,23 @@ class RedditAPI:
     '''
 
     def search_for_posts(self, query, size, start_date, end_date, subreddits):
-        url = f'https://api.pushshift.io/reddit/search/submission/?q={query}&limit={size}&before={end_date}&after={start_date}&subreddit={subreddits}&sort_type=num_comments&sort=desc'
+        url = f'https://api.pushshift.io/reddit/search/submission/?q={query}&limit={size}&before={end_date}&after={start_date}&subreddit={subreddits}&sort_type=score&sort=desc'
         res = requests.get(url).json()
         list_of_comments = []
         # res = list(api.search_submissions(subreddit=subreddits, limit=size, before=end_date, after=start_date, sort='desc', sort_type='score'))
 
         for post in res['data']:
             post_id = post['permalink'].split('/')[4]
+            try:
+                res_comments = requests.get(f'https://api.pushshift.io/reddit/search/comment/?link_id={post_id}&size=100&sort_type=score&sort=desc').json()
+            except e:
+                print(e)
+                print(res_comments)
+            # list_of_comments.extend([comment['body'] for comment in res_comments['data'] if comment['body'] != '[removed]'])
+            for comment in res_comments['data']:
+                if comment['body'] != '[removed]':
+                    list_of_comments.append(comment['body'])
             print(post_id)
-            res_comments = requests.get(f'https://api.pushshift.io/reddit/search/comment/?link_id={post_id}&size=100&sort_type=score&sort=desc').json()
-            list_of_comments.extend([comment['body'] for comment in res_comments['data'] if comment['body'] != '[removed]'])
             
         
         return list_of_comments
@@ -73,7 +79,7 @@ class RedditAPI:
 #     print(end_ep)
 #     print(start_ep)
 #     t1 = time.time()
-#     res = r.search_for_comments(f'GME', 500, start_ep, end_ep, f'wallstreetbets')
+#     res = r.search_for_posts(f'hrdgdf', 3, start_ep, end_ep, f'wallstreetbets')
 #     t2 = time.time()
 #     print(res)
 #     print(len(res))

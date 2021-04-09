@@ -4,8 +4,8 @@ import pandas as pd
 
 class LogisticRegression:
 
-    def sigmoid(self):
-        pass
+    def _sigmoid(self, x):
+        1 / (1 + np.exp(-x))
 
     def train(self):
         pass
