@@ -98,7 +98,7 @@ if __name__ == "__main__":
     print(end_ep)
     print(start_ep)
     start_time = time.time()
-    comments_list = r.search_for_posts(f'GME', 5, start_ep, end_ep, f'wallstreetbets')
+    comments_list = r.search_for_posts(f'GME', 3, start_ep, end_ep, f'wallstreetbets')
     end_time = time.time() - start_time
 
     print('Comments List: ', comments_list)
