@@ -2,15 +2,15 @@ const Sentiment = (sentiment) => {
   var emotion = "";
 
   if (sentiment.sentiment < 0) {
-    emotion = ":(";
+    emotion = " 🙁 ";
   } 
   
   if (sentiment.sentiment === 0) {
-    emotion = ":|";
+    emotion = " 😐 ";
   } 
   
   if (sentiment.sentiment > 0){
-    emotion = ":)";
+    emotion = " 😀 ";
   }
 
   return emotion;

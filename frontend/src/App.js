@@ -21,14 +21,14 @@ const filterStocks = (stocks, query) => {
   });
 };
 
-const options = [
-  { value: 'past year', label: 'Past year' },
-  { value: 'past 3 months', label: 'Past 3 months'},
-  { value: 'past month', label: "Past month"},
-  { value: 'past week', label: "Past week"},
-];
+// const options = [
+//   { value: 'past year', label: 'Past year' },
+//   { value: 'past 3 months', label: 'Past 3 months'},
+//   { value: 'past month', label: "Past month"},
+//   { value: 'past week', label: "Past week"},
+// ];
 
-const defaultOption = options[2];
+// const defaultOption = options[2];
 
 const App = () => {
   const { search } = window.location;
