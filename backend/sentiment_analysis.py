@@ -3,6 +3,8 @@ import pandas as pd
 import nltk
 import re
 import emoji
+import os
+import time
 
 from nltk import word_tokenize
 from nltk.corpus import stopwords
@@ -31,7 +33,9 @@ def create_stop_words():
   # stop_words = set(stopwords.words('english'))
   # return series_set.union(stop_words)
 
-  return series_set
+  stop_words = set(['i'])
+
+  return series_set.union(stop_words)
 
 stop_words = create_stop_words()
 
@@ -94,14 +98,14 @@ class SentimentAnalysis:
     pass
 
   def initialize_dataset(self):
-    # file_names = ['test_preprocessing.csv', 'Reddit_Data.csv']
-    file_names = ['test_preprocessing.csv']
+    file_names = ['test_preprocessing.csv', 'stock_data.csv', 'stock_sentiment.csv', 'Project6500.csv']
+    # file_names = ['test_preprocessing.csv']
     # list comprehension performs better in terms of performance since we don't need to append to the array each time
     frames = [pd.read_csv(f'../dataset/{file_name}', sep=',') for file_name in file_names]
     df = pd.concat(frames, ignore_index=True)
     print('\n', df.head())
     x = df['clean_comment'].astype('U')
-    y = df.values[:,1].astype('int')
+    y = df['category'].astype('int')
 
     return x, y
 
@@ -109,17 +113,18 @@ class SentimentAnalysis:
     x, Y = self.initialize_dataset()
     clean_column = self.clean_data(x)
     X = self.setup_vectorizer(clean_column)
-    X_train, X_test, y_train, y_test = self.split_into_test_and_train(X, Y)
+    # X_train, X_test, y_train, y_test = self.split_into_test_and_train(X, Y)
+    X_train, y_train = X, Y
 
     # Naive Bayes
-    self.naive_bayes_train(X_train, y_train)
-    naive_bayes_sentiments = self.naive_bayes_predict(X_test)
-    self.report_accuracy(naive_bayes_sentiments, y_test, 'Naive Bayes')
+    # self.naive_bayes_train(X_train, y_train)
+    # naive_bayes_sentiments = self.naive_bayes_predict(X_test)
+    # self.report_accuracy(naive_bayes_sentiments, y_test, 'Naive Bayes')
 
     # Logistic Regression
     self.logistic_regression_train(X_train, y_train)
-    logistic_regression_sentiments = self.logistic_regression_predict(X_test)
-    self.report_accuracy(logistic_regression_sentiments, y_test, 'Logistic Regression')
+    # logistic_regression_sentiments = self.logistic_regression_predict(X_test)
+    # self.report_accuracy(logistic_regression_sentiments, y_test, 'Logistic Regression')
 
   def clean_data(self, x):
     text_preprocessing = TextPreprocessing()
@@ -169,7 +174,11 @@ class SentimentAnalysis:
 
 if __name__ == "__main__":
   sentiment_analysis = SentimentAnalysis()
+  start = time.time()
   sentiment_analysis.train_model()
+  end = time.time()
+
+  print(f'TRAINING TIME: {end - start} seconds')
 
   test = {
     'body': [

@@ -37,7 +37,7 @@ Expecting in body:
 
 @app.route('/sentiment', methods=['GET'])
 def sentiment():
-	body = dict(request.get_json())
+	body = dict(request.args)
 
 	# convert time to EPOCH time
 	now = datetime.now()
