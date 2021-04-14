@@ -37,6 +37,7 @@ Expecting in body:
 
 @app.route('/sentiment', methods=['GET'])
 def sentiment():
+	
 	body = dict(request.args)
 
 	# convert time to EPOCH time
@@ -61,7 +62,9 @@ def sentiment():
 			neu[1] += 1
 		elif s == -1:
 			neg[1] += 1
-		
+	print(pos)
+	print(neu)
+	print(neg)
 	return jsonify({'sentiment': max([pos,neu,neg], key= lambda item:item[1])[0]})
 
 def get_sentiment(data):
