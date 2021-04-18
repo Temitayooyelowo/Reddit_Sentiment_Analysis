@@ -29,8 +29,7 @@ class AnalyzeDataset:
     Class to calculate the logistic regression using gradient descent
 '''
 class Naive_Bayes:
-    def __init__(self, alpha=1):
-        self.alpha = alpha
+    def __init__(self):
         self.vectorizer = CountVectorizer(binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
         self.theta_k = {}
         self.theta_k_j = {}
@@ -55,7 +54,7 @@ class Naive_Bayes:
 
             for j in range(X_train.shape[1]) :
                 # use laplace estimation to handle zero probabilities
-                prob = (total_num_of_examples[j] + self.alpha)/(float(self.class_count_dict[k]) + 2)
+                prob = (total_num_of_examples[j] + 1)/(float(self.class_count_dict[k]) + 2)
                 self.theta_k_j[k].append(prob)
 
         return self.theta_k, self.theta_k_j
