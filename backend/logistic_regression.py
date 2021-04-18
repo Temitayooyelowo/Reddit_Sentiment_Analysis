@@ -1,15 +1,9 @@
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn import metrics
-import time
-from gensim.parsing.preprocessing import remove_stopwords
-from sklearn.feature_extraction import text
-from nltk import word_tokenize
-from nltk.stem import WordNetLemmatizer
-
-
 from sentiment_analysis import TextPreprocessing, LemmaTokenizer
 
 class AnalyzeDataset:
@@ -35,52 +29,36 @@ class AnalyzeDataset:
     Class to calculate the logistic regression using gradient descent
 '''
 class Naive_Bayes:
-    def __init__(self):
+    def __init__(self, alpha=1):
+        self.alpha = alpha
         self.vectorizer = CountVectorizer(binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
-        self.k_count = {}
         self.theta_k = {}
-        self.theta_j_k = {}
+        self.theta_k_j = {}
+        self.class_count_dict = {}
 
-    def fit(self, X, Y) :
-        start = time.time()
-
-        X = self.vectorizer.fit_transform(X)
-        X_vector_train = X.toarray()
+    def fit(self, X_train, Y_train) :
+        X_train = self.vectorizer.fit_transform(X_train)
+        X_train = X_train.toarray()
 
         # count number of occurences of class vlues in train set
         unique, counts = np.unique(Y, return_counts=True)
-        self.k_count = dict(zip(unique, counts))
-        self.column_names = unique
+        self.class_count_dict = dict(zip(unique, counts))
+        self.class_names = unique
 
-        for k in self.k_count :
+        for k in self.class_count_dict:
             # theta_k
-            self.theta_k[k] = self.k_count[k]/float(Y.shape[0])
+            self.theta_k[k] = self.class_count_dict[k]/float(Y.shape[0])
+            self.theta_k_j[k] = []
 
-            # theta_j_k[k]
-            self.theta_j_k[k] = []
+            num_examples_y_equals_k = np.take(X_train, np.where(Y_train == k)[0], axis=0)
+            total_num_of_examples = num_examples_y_equals_k.sum(axis=0)
 
-            # indexes for samples that are in k subreddit
-            k_indexes = np.where(Y == k)[0]
+            for j in range(X_train.shape[1]) :
+                # use laplace estimation to handle zero probabilities
+                prob = (total_num_of_examples[j] + self.alpha)/(float(self.class_count_dict[k]) + 2)
+                self.theta_k_j[k].append(prob)
 
-            # filter X_vector_train with k_indexes
-            filtered_X = np.take(X_vector_train, k_indexes, axis=0)
-            # sum of all j/word binary occurences in a k/subreddit
-            filtered_X_sum = filtered_X.sum(axis=0)
-
-            # for every word (j), building self.theta_j_k[k][j]
-            for j in range(X_vector_train.shape[1]) :
-                # NO LAPLACE SMOOTHING
-                # prob = filtered_X_sum[j]/float(self.k_count[k])
-
-                # LAPLACE SMOOTHING
-                prob = (filtered_X_sum[j] + 1)/(float(self.k_count[k]) + 2)
-
-                self.theta_j_k[k].append(prob)
-
-        end = time.time()
-        print("Fit time:", (end - start))
-
-        return self.theta_k, self.theta_j_k
+        return self.theta_k, self.theta_k_j
 
     def predict(self, X_test):
         X_test = self.vectorizer.transform(X_test)
@@ -92,19 +70,21 @@ class Naive_Bayes:
     def __predict(self, X_test, num_classes, num_features):
         class_prob = [[] for _ in range(num_classes)]
 
-        for k in self.k_count:
+        for k in self.class_count_dict:
             feature_likelihood = 0
             for j in range(num_features):
                 X_j = X_test[:,j]
-                feature_likelihood += X_j * np.log(self.theta_j_k[k][j]) + (
-                    1 - X_j) * np.log(1 - self.theta_j_k[k][j])
-            curr_class_prob = feature_likelihood + np.log(self.theta_k[k])
+                feature_likelihood += X_j * np.log(self.theta_k_j[k][j]) + (
+                    1 - X_j) * np.log(1 - self.theta_k_j[k][j])
+            self.__class_prob(class_prob, feature_likelihood + np.log(self.theta_k[k]))
 
-            for idx, val in enumerate(curr_class_prob):
-                class_prob[idx].append(val)
-                if len(class_prob[idx]) == len(self.column_names):
-                    column_idx = np.argmax(class_prob[idx])
-                    class_prob[idx] = self.column_names[column_idx]
+        return class_prob
+
+    def __class_prob(self, class_prob, curr_class_prob):
+        for i, val in enumerate(curr_class_prob):
+            class_prob[i].append(val)
+            if len(class_prob[i]) == len(self.class_names):
+                class_prob[i] = self.class_names[np.argmax(class_prob[i])]
 
         return class_prob
 
@@ -121,18 +101,16 @@ def clean_data(x):
 if __name__ == "__main__" :
     analyze_dataset = AnalyzeDataset()
     X, Y = analyze_dataset.initialize_dataset()
-
-    # clean dataset
     X = clean_data(X)
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=0.8, test_size=0.2)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=0.7, random_state=42)
 
     print("Train x:", X_train.shape, "y:", Y_train.shape)
     print("Test x:", X_test.shape, "y:", Y_test.shape)
 
-    bnb = Naive_Bayes()
+    naive_bayes = Naive_Bayes()
 
-    bnb.fit(X=X_train, Y=Y_train)
-    y_pred = bnb.predict(X_test)
+    naive_bayes.fit(X_train, Y_train)
+    y_pred = naive_bayes.predict(X_test)
 
-    bnb.report_accuracy(y_pred, Y_test)
+    naive_bayes.report_accuracy(y_pred, Y_test)
