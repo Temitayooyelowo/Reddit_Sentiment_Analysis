@@ -1,6 +1,16 @@
-from math import loglp
 import numpy as np
 import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+import time
+from gensim.parsing.preprocessing import remove_stopwords
+from sklearn.feature_extraction import text
+from nltk import word_tokenize
+from nltk.stem import WordNetLemmatizer
+
+
+from sentiment_analysis import TextPreprocessing, LemmaTokenizer
 
 class AnalyzeDataset:
     def __init__(self):
@@ -11,8 +21,8 @@ class AnalyzeDataset:
         The csv data will be used to train the model
     '''
     def initialize_dataset(self):
-        # file_names = ['test_preprocessing.csv', 'Reddit_Data.csv']
-        file_names = ['test_preprocessing.csv']
+        file_names = ['test_preprocessing.csv', 'stock_data.csv', 'stock_sentiment.csv', 'Project6500.csv']
+        # file_names = ['test_preprocessing.csv']
         # list comprehension performs better in terms of performance since we don't need to append to the array each time
         frames = [pd.read_csv(f'../dataset/{file_name}', sep=',') for file_name in file_names]
         df = pd.concat(frames, ignore_index=True)
@@ -24,57 +34,105 @@ class AnalyzeDataset:
 '''
     Class to calculate the logistic regression using gradient descent
 '''
-class LogisticRegression:
-    def __init__(self, learn_rate, tolerance):
-        self.learn_rate = learn_rate
-        self.tolerance = tolerance
+class Naive_Bayes:
+    def __init__(self):
+        self.vectorizer = CountVectorizer(binary = True, strip_accents='ascii', tokenizer=LemmaTokenizer())
+        self.k_count = {}
+        self.theta_k = {}
+        self.theta_j_k = {}
 
-    def __sigmoid(self, x):
-        1 / (1 + np.exp(-x))
+    def fit(self, X, Y) :
+        start = time.time()
 
-    def train(self, tolerance):
-        pass
+        X = self.vectorizer.fit_transform(X)
+        X_vector_train = X.toarray()
 
-    def fit(self, x, y):
-        num_features, num_samples = X.shape
+        # count number of occurences of class vlues in train set
+        unique, counts = np.unique(Y, return_counts=True)
+        self.k_count = dict(zip(unique, counts))
+        self.column_names = unique
 
-        # create an array with 1 row and num_features column
-        weights = np.zeros((num_features, 1))
-        bias = np.ones((num_samples, 1))
+        for k in self.k_count :
+            # theta_k
+            self.theta_k[k] = self.k_count[k]/float(Y.shape[0])
 
-        k = 0
-        while True:
-            delta = np.zeros((num_features+1, 1))
-            # loop through num of samples 
-            for i in range(num_samples):
-                X = np.matrix() # TODO: need to finish this
-                true_output = y[i]
+            # theta_j_k[k]
+            self.theta_j_k[k] = []
 
-                # use dot product to calculate curr delta
-                predicted_output =  self.__sigmoid(np.dot(np.transpose(weight, X)))
-                y_minus_sigmoid = np.subtract(true_output, predicted_output)
-                curr_delta = np.dot(X, y_minus_sigmoid)
+            # indexes for samples that are in k subreddit
+            k_indexes = np.where(Y == k)[0]
 
-                delta += curr_delta
+            # filter X_vector_train with k_indexes
+            filtered_X = np.take(X_vector_train, k_indexes, axis=0)
+            # sum of all j/word binary occurences in a k/subreddit
+            filtered_X_sum = filtered_X.sum(axis=0)
 
-            delta = delta * -1 
-            # we might need to updated learning rate for each iteration
-            updated_weights = np.subtract(weights, np.dot(learn_rate, delta))
-            norm = np.subtract(updated_weights, weights)
-            norm = np.linalg.norm(norm)
-            norm = np.square(norm)
+            # for every word (j), building self.theta_j_k[k][j]
+            for j in range(X_vector_train.shape[1]) :
+                # NO LAPLACE SMOOTHING
+                # prob = filtered_X_sum[j]/float(self.k_count[k])
 
-            # should converge when norm is less than tolerance
-            if norm < self.tolerance:
-                accuracy = None
-                # TODO: should make a prediction and compare that with the expected value 
-                # might need to create a function for this 
-                return accuracy 
-            k += 1
+                # LAPLACE SMOOTHING
+                prob = (filtered_X_sum[j] + 1)/(float(self.k_count[k]) + 2)
 
-    def accuracy_evaluation(self):
-        pass
+                self.theta_j_k[k].append(prob)
 
-    def predict(self):
-        pass
-    
+        end = time.time()
+        print("Fit time:", (end - start))
+
+        return self.theta_k, self.theta_j_k
+
+    def predict(self, X_test):
+        X_test = self.vectorizer.transform(X_test)
+        X_test = X_test.toarray()
+        num_classes, num_features = X_test.shape
+
+        return self.__predict(X_test, num_classes, num_features)
+
+    def __predict(self, X_test, num_classes, num_features):
+        class_prob = [[] for _ in range(num_classes)]
+
+        for k in self.k_count:
+            feature_likelihood = 0
+            for j in range(num_features):
+                X_j = X_test[:,j]
+                feature_likelihood += X_j * np.log(self.theta_j_k[k][j]) + (
+                    1 - X_j) * np.log(1 - self.theta_j_k[k][j])
+            curr_class_prob = feature_likelihood + np.log(self.theta_k[k])
+
+            for idx, val in enumerate(curr_class_prob):
+                class_prob[idx].append(val)
+                if len(class_prob[idx]) == len(self.column_names):
+                    column_idx = np.argmax(class_prob[idx])
+                    class_prob[idx] = self.column_names[column_idx]
+
+        return class_prob
+
+    def report_accuracy(self, y_pred, y_test):
+        print(metrics.classification_report(y_test, y_pred))
+        print('Accuracy: ', metrics.accuracy_score(y_test, y_pred))
+
+def clean_data(x):
+    text_preprocessing = TextPreprocessing()
+    clean_column = text_preprocessing.clean_data(x)
+    print(clean_column.head())
+    return clean_column
+
+if __name__ == "__main__" :
+    analyze_dataset = AnalyzeDataset()
+    X, Y = analyze_dataset.initialize_dataset()
+
+    # clean dataset
+    X = clean_data(X)
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=0.8, test_size=0.2)
+
+    print("Train x:", X_train.shape, "y:", Y_train.shape)
+    print("Test x:", X_test.shape, "y:", Y_test.shape)
+
+    bnb = Naive_Bayes()
+
+    bnb.fit(X=X_train, Y=Y_train)
+    y_pred = bnb.predict(X_test)
+
+    bnb.report_accuracy(y_pred, Y_test)
